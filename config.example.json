@@ -1,0 +1,46 @@
+{
+  "log_file": "backup_download.log",
+  "log_level": "INFO",
+  "connect_timeout_sec": 15,
+  "default_retention_days": 30,
+  "default_sync_mode": "latest",
+  "default_sync_last_n": 7,
+  "max_workers": 4,
+  "schedule": {
+    "time": "09:00"
+  },
+  "servers": [
+    {
+      "name": "server1",
+      "host": "192.168.1.10",
+      "port": 22,
+      "username": "backup_user",
+      "auth_type": "password",
+      "password": "${BACKUP_PASS_SERVER1}",
+      "key_file": null,
+      "key_passphrase": null,
+      "remote_base": "/backup/dbbackups",
+      "local_base": "./backups/server1",
+      "file_pattern": "*",
+      "retention_days": 30,
+      "sync_mode": "latest",
+      "sync_last_n": 7
+    },
+    {
+      "name": "server2",
+      "host": "192.168.1.11",
+      "port": 22,
+      "username": "backup_user",
+      "auth_type": "key",
+      "password": null,
+      "key_file": "~/.ssh/id_rsa",
+      "key_passphrase": null,
+      "remote_base": "/backup/dbbackups",
+      "local_base": "./backups/server2",
+      "file_pattern": "*.sql.gz",
+      "retention_days": 30,
+      "sync_mode": "last-n-days",
+      "sync_last_n": 7
+    }
+  ]
+}

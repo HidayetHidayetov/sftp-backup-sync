@@ -1,0 +1,17 @@
+# secrets / local state
+config.json
+*.log
+cron.log
+backups/
+__pycache__/
+*.part
+
+# python
+.venv/
+venv/
+*.pyc
+
+# editors
+.idea/
+.vscode/
+.DS_Store
