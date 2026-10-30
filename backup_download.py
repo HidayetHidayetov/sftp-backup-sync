@@ -39,6 +39,13 @@ import sys
 from datetime import date, datetime
 from pathlib import Path
 
+try:
+    import paramiko
+except ImportError:  # requirements.txt: pip install -r requirements.txt
+    paramiko = None  # type: ignore[assignment]
+
+__version__ = "1.1.0"
+
 DATE_FORMATS = [
     "%d%b%Y",    # 29Oct2026
     "%d-%b-%Y",  # 29-Oct-2026
@@ -64,16 +71,13 @@ DEFAULTS = {
 
 def parse_date_folder(name: str) -> date | None:
     s = name.strip()
-    for fmt in DATE_FORMATS:
-        try:
-            return datetime.strptime(s, fmt).date()
-        except ValueError:
-            continue
-    for fmt in DATE_FORMATS:  # "29oct2026" kimi kicik herf
-        try:
-            return datetime.strptime(s.title(), fmt).date()
-        except ValueError:
-            continue
+    variants = (s, s.title())  # "29oct2026" kimi kicik herf de tutulur
+    for text in variants:
+        for fmt in DATE_FORMATS:
+            try:
+                return datetime.strptime(text, fmt).date()
+            except ValueError:
+                continue
     return None
 
 
@@ -126,14 +130,14 @@ def load_config(path: Path) -> dict:
 
 def server_cfg(cfg: dict, srv: dict, key: str):
     """Server deyeri yoxdursa global defaulta dusur."""
-    if key in srv and srv[key] is not None:
+    if srv.get(key) is not None:
         return srv[key]
-    mapping = {
+    fallback = {
         "retention_days": "default_retention_days",
         "sync_mode": "default_sync_mode",
         "sync_last_n": "default_sync_last_n",
-    }
-    return srv.get(key, cfg.get(mapping.get(key, key)))
+    }.get(key, key)
+    return cfg.get(fallback)
 
 
 def pick_target_dirs(sftp, remote_base: str, sync_mode: str, sync_last_n: int,
@@ -208,7 +212,8 @@ def cleanup_old(local_base: Path, retention_days: int, dry_run: bool,
 
 
 def connect_sftp(server: dict, timeout: int):
-    import paramiko
+    if paramiko is None:
+        raise RuntimeError("paramiko qurulu deyil: pip install -r requirements.txt")
 
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -247,7 +252,7 @@ def process_server(cfg: dict, server: dict, timeout: int, dry_run: bool,
     sync_last_n = int(server_cfg(cfg, server, "sync_last_n"))
     local_base.mkdir(parents=True, exist_ok=True)
 
-    log.info(f"[{name}] Qosulur: {server['username']}@{server['host']} ...")
+    log.info(f"[{name}] Qosulur: {expand_env(server['username'])}@{expand_env(server['host'])} ...")
     client = None
     try:
         client = connect_sftp(server, timeout)
@@ -325,6 +330,7 @@ def main() -> int:
     ap.add_argument("--install-schedule", action="store_true", help="gunluk task qurasdir")
     ap.add_argument("--time", default=None, help="cedvel saati HH:MM (default config schedule.time)")
     ap.add_argument("--task-name", default="SFTP_Backup_Sync")
+    ap.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     args = ap.parse_args()
 
     base = Path(__file__).resolve().parent
@@ -344,7 +350,8 @@ def main() -> int:
     cfg = load_config(cfg_path)
 
     if args.install_schedule:
-        t = args.time or cfg.get("schedule", {}).get("time", "09:00")
+        schedule = cfg.get("schedule") or {}
+        t = args.time or schedule.get("time", "09:00")
         return install_schedule(t, cfg_path, args.task_name)
 
     log = setup_logging(cfg.get("log_file"), cfg.get("log_level", "INFO"))

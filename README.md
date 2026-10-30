@@ -30,6 +30,8 @@ Local result:
 ```bash
 pip install -r requirements.txt
 cp config.example.json config.json   # fill hosts/users/paths
+# Windows: copy config.example.json config.json
+python backup_download.py --version
 python backup_download.py --dry-run
 python backup_download.py
 ```

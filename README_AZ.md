@@ -12,6 +12,8 @@ Məntiq:
 ```bash
 pip install -r requirements.txt
 cp config.example.json config.json   # doldur
+# Windows: copy config.example.json config.json
+python backup_download.py --version
 ```
 
 ## 2. Tənzimləmə (`config.json`)
