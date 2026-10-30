@@ -1,48 +1,62 @@
-# Gündəlik DB Backup Endirici (Emios + AKT-Portali, saat 09:00)
+# SFTP Backup Sync — AZ təlimat (v1)
+
+N sayda serverdən tarix-folderli backup endirir, seçdiyin gün sayını saxlayır.
 
 Məntiq:
 - Remote: `/backup/dbbackups/29Oct2026/akt-29Oct2026.sql.gz`
-- Local: `D:/Production-Database-Backups/Emios/29Oct2026/...` və `.../AKT-Portali/29Oct2026/...`
-- Hər işəsalma: ən son tarix folderi endirilir + 30 gündən köhnələr avtomatik silinir.
+- Local: `D:/Production-Database-Backups/Emios/29Oct2026/...`
+- Sənin ssenarin: 2 server (Emios + AKT-Portali), amma istədiyin qədər əlavə edə bilərsən.
 
 ## 1. Quraşdırma
 
 ```powershell
 cd D:\opencodeXAsistant\db_backup_downloader
 py -m pip install -r requirements.txt
-```
-
-## 2. Tənzimləmə
-
-```powershell
 py backup_download.py   # ilk dəfə config.json yaradır
 ```
 
-Sonra `config.json`-i aç, 2 server üçün doldur:
-- `host`: Emios və AKT server IP/host
-- `username`, `password` (və ya `auth_type: key` + `key_file`)
-- `remote_base`: `/backup/dbbackups` (ikində də eyni)
-- `local_base`: `D:/Production-Database-Backups/Emios` və `D:/Production-Database-Backups/AKT-Portali`
-- `retention_days`: 30
+## 2. Tənzimləmə (`config.json`)
+
+Hər server üçün dinamikdir:
+
+| Sahə | Məna |
+|------|------|
+| `host`, `port`, `username` | server bağlantısı |
+| `password` | `"${BACKUP_PASS_EMIOS}"` kimi ENV yaz (açıq şifrə commit etmə!) |
+| `remote_base` | serverdəki qovluq, məs `/backup/dbbackups` |
+| `local_base` | PC-dəki qovluq, məs `D:/Production-Database-Backups/Emios` |
+| `file_pattern` | məs `*` və ya `*.sql.gz` |
+| `retention_days` | neçə günlük saxlansın (səndə 30) |
+| `sync_mode` | `latest` (ən son 1) və ya `last-n-days` (son N folder) |
+| `sync_last_n` | `last-n-days` üçün N |
+
+Qlobal: `schedule.time` (məs `09:00`), `default_retention_days`, `max_workers`.
+
+Şifrələri ENV-də saxla:
+
+```powershell
+setx BACKUP_PASS_EMIOS "senin_sifren"
+setx BACKUP_PASS_AKT "senin_sifren"
+```
 
 ## 3. Test
 
 ```powershell
-py backup_download.py --dry-run   # silmədən göstərir, nə silinəcək
-py backup_download.py             # real endirmə + 30+ günlük təmizlik
+py backup_download.py --dry-run --only Emios
+py backup_download.py --dry-run
+py backup_download.py
 ```
 
-## 4. Hər gün 09:00 (Task Scheduler, Administrator PowerShell)
+## 4. Hər gün avtomat (saat dinamikdir)
 
 ```powershell
-schtasks /create /tn "DB_Backup_9AM" /tr "C:\Users\hidayet.hidayetov\AppData\Local\Programs\Python\Python313\python.exe D:\opencodeXAsistant\db_backup_downloader\backup_download.py --config D:\opencodeXAsistant\db_backup_downloader\config.json" /sc daily /st 09:00 /f
-schtasks /run /tn "DB_Backup_9AM"
+py backup_download.py --install-schedule --time 09:00
 ```
 
-Qeyd: kompüter 09:00-da açıq olmalıdır. "Missed start" halı üçün Task-da "Run as soon as possible after a scheduled start is missed" aç.
+Saat dəyişmək istəsən `--time 14:30` ilə təkrar işə sal. Kompüter o saatda açıq olmalıdır.
 
 ## Təhlükəsizlik
 
-- Tarix kimi tanınmayan qovluqlara toxunulmur, yalnız `29Oct2026` formatı silinir.
-- Eyni ölçülü fayl varsa təkrar endirilmir (`.part` ilə yarımçıq endirmə qorunur).
-- Log: `backup_download.log`
+- Adı tarix kimi tanınmayan qovluq silinmir.
+- Eyni ölçülü fayl təkrar endirilmir, yarımçıq endirmə `.part` ilə qorunur.
+- `config.json` git-ə düşmür (`.gitignore`), real IP/şifrə paylaşma.
