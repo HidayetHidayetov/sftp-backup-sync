@@ -5,7 +5,7 @@ Sync date-named backup folders from **N SFTP servers** to your PC, keep only the
 Remote layout it understands:
 
 ```
-/backup/dbbackups/29Oct2026/akt-29Oct2026.sql.gz
+/backup/dbbackups/29Oct2026/db-29Oct2026.sql.gz
 ```
 
 Local result:

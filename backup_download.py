@@ -2,11 +2,11 @@
 """SFTP Backup Sync — N serverden tarix-folderli backup endir + retensiya.
 
 Remote struktur:
-  /backup/dbbackups/29Oct2026/akt-29Oct2026.sql.gz
+  /backup/dbbackups/29Oct2026/db-29Oct2026.sql.gz
 
 Local struktur:
-  ./backups/Emios/29Oct2026/...
-  ./backups/AKT-Portali/29Oct2026/...
+  ./backups/server1/29Oct2026/...
+  ./backups/server2/29Oct2026/...
 
 Xususiyyetler:
   - limitsiz server (config `servers` siyahisi)
